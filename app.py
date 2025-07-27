@@ -125,6 +125,8 @@ def analyze_landscaping():
         # --- Phase 3: Generate Final Report ---
         final_report_sections = []
         final_report_sections.append("--- Landscaping Project Report ---\n")
+        # Ensure datetime is imported at the top if not already, or remove the line if you don't need it
+        # from datetime import datetime
         final_report_sections.append(f"**Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S CDT')}**\n")
         final_report_sections.append("\n### 1. Before Image Analysis (Current State)\n")
         final_report_sections.append(before_analysis)
@@ -132,18 +134,36 @@ def analyze_landscaping():
         final_report_sections.append("\n### 2. Requested Tasks Verification\n")
         final_report_sections.append(f"Original Requested Tasks:\n{requested_tasks_text}\n")
         final_report_sections.append("Verification Report:\n")
-        final_report_sections.append(task_verification_report_raw)
+        final_report_sections.append(task_verification_report_raw) # Keep raw output for full context
+
 
         uncompleted_tasks_for_payment = []
+        all_tasks_from_report = []
+        
         lines = task_verification_report_raw.split('\n')
+        current_task = None
+
         for line in lines:
-            line_lower = line.lower()
-            if ("status: not completed" in line_lower or "status: incomplete" in line_lower or "status: partially completed" in line_lower) and "- task:" in line_lower:
-                try:
-                    task_description = line.split("Task:", 1)[1].split("\n")[0].strip()
-                    uncompleted_tasks_for_payment.append(task_description)
-                except IndexError:
-                    uncompleted_tasks_for_payment.append(line.strip())
+            line_stripped = line.strip()
+            line_lower = line_stripped.lower()
+
+            if line_lower.startswith('- task:'):
+                current_task = line_stripped.replace('- Task:', '').strip()
+                all_tasks_from_report.append(current_task) # Store all tasks identified by LLM
+
+            elif current_task and ("status: not completed" in line_lower or 
+                                   "status: incomplete" in line_lower or 
+                                   "status: partially completed" in line_lower):
+                # If a status line indicates non-completion and we have a current_task,
+                # add the current_task to the uncompleted list.
+                if current_task not in uncompleted_tasks_for_payment: # Avoid duplicates
+                    uncompleted_tasks_for_payment.append(current_task)
+                current_task = None # Reset current_task after processing its status
+
+            elif current_task and "status: completed" in line_lower:
+                current_task = None # Task completed, reset for next task
+
+
 
         if uncompleted_tasks_for_payment:
             final_report_sections.append("\n### 3. Tasks Left to Be Completed (Before Contractor Payment)\n")
