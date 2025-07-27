@@ -10,10 +10,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const analyzeBtn = document.getElementById('analyzeBtn');
     const reportOutput = document.getElementById('reportOutput');
     const downloadReportBtn = document.getElementById('downloadReportBtn');
+    const downloadBeforeTasksBtn = document.getElementById('downloadBeforeTasksBtn'); // NEW BUTTON ELEMENT
     const loadingSpinner = document.getElementById('loading');
 
     let beforeImageDataURL = null;
     let afterImageDataURL = null;
+    let storedBeforeAnalysisText = null; // NEW: To store before analysis for separate download
+    let storedOriginalTasksText = null;  // NEW: To store original tasks for separate download
+
 
     // Helper to read file and update display
     function handleImageUpload(event, fileNameDisplay) {
@@ -85,28 +89,51 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             console.log('Received API Response Data:', data); // CRUCIAL: Log the actual data received
 
-            // This is the line that updates the report output
+            // Store the specific sections for separate download
+            storedBeforeAnalysisText = data.before_analysis_text; // NEW
+            storedOriginalTasksText = data.original_tasks_text;   // NEW
+
+            // This is the line that updates the main report output
             reportOutput.textContent = data.report;
             console.log('Attempted to set reportOutput.textContent.');
 
-        } catch (error) { // This is the ONLY catch block for the try above
+        } catch (error) {
             console.error('Error during fetch or processing:', error);
             reportOutput.textContent = `Error: ${error.message}`; // Display error in report area
             alert('Failed to generate report: ' + error.message);
-        } finally { // This is the ONLY finally block for the try/catch above
+        } finally {
             loadingSpinner.style.display = 'none'; // Hide spinner
         }
     });
 
     downloadReportBtn.addEventListener('click', () => {
-        console.log('Download button clicked!');
+        console.log('Download Full Report button clicked!');
         if (reportOutput.textContent.trim() === '' || reportOutput.textContent.includes('Error:')) {
             alert('No valid report to download.');
             return;
         }
         const link = document.createElement('a');
-        link.download = 'landscaping_report.txt';
+        link.download = 'landscaping_full_report.txt'; // Changed filename
         const blob = new Blob([reportOutput.textContent], { type: 'text/plain' });
+        link.href = URL.createObjectURL(blob);
+        link.click();
+        URL.revokeObjectURL(link.href);
+    });
+
+    // NEW: Event listener for downloading Before Analysis & Tasks
+    downloadBeforeTasksBtn.addEventListener('click', () => {
+        console.log('Download Before Analysis & Tasks button clicked!');
+        if (!storedBeforeAnalysisText || !storedOriginalTasksText) {
+            alert('Please generate a report first to get the before analysis and tasks.');
+            return;
+        }
+
+        const combinedText = `--- Before Image Analysis ---\n\n${storedBeforeAnalysisText}\n\n` +
+                             `--- Original Requested Tasks ---\n\n${storedOriginalTasksText}\n`;
+
+        const link = document.createElement('a');
+        link.download = 'landscaping_before_tasks_summary.txt';
+        const blob = new Blob([combinedText], { type: 'text/plain' });
         link.href = URL.createObjectURL(blob);
         link.click();
         URL.revokeObjectURL(link.href);
