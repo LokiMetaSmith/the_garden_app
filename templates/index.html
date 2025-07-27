@@ -35,12 +35,14 @@
                 <div class="section report-section">
                     <h2>Project Report</h2>
                     <pre id="reportOutput"></pre>
-                    <button id="downloadReportBtn" class="button success">Download Report</button>
+                    <button id="downloadReportBtn" class="button success">Download Full Report</button>
+                    <button id="downloadBeforeTasksBtn" class="button">Download Before Analysis & Tasks</button>
                 </div>
             </div>
         </div>
         <div id="loading" class="loading-spinner"></div>
     </div>
+
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
