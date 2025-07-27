@@ -1,0 +1,91 @@
+/* static/style.css */
+/* ... (keep existing body, container, h1, button styles) ... */
+
+.upload-section {
+    margin-bottom: 25px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 20px;
+    display: flex; /* For horizontal layout of file inputs */
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap; /* Allow wrapping on small screens */
+}
+
+.file-group {
+    text-align: center;
+}
+
+.fileName { /* Re-used from previous version, just renamed ID to class */
+    margin-top: 10px;
+    font-style: italic;
+    color: #555;
+}
+
+.editor-area {
+    display: flex;
+    justify-content: center; /* Center controls */
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.controls { /* Now contains the primary input and output sections */
+    flex-basis: 700px; /* Adjust width as needed */
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    text-align: left;
+}
+
+.section {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid #eee;
+}
+
+h2 {
+    font-size: 1.2em;
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #444;
+}
+
+textarea {
+    width: calc(100% - 22px); /* Account for padding */
+    padding: 10px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    resize: vertical; /* Allow user to resize text area */
+    font-family: inherit; /* Use same font as body */
+}
+
+.report-section {
+    flex-grow: 1; /* Allow report section to take available space */
+}
+
+#reportOutput {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    padding: 15px;
+    min-height: 200px; /* Ensure it's visible even when empty */
+    overflow-y: auto; /* Scroll if content overflows */
+    white-space: pre-wrap; /* Preserve whitespace and wrap long lines */
+    text-align: left;
+    font-family: monospace; /* For report readability */
+}
+
+/* ... (keep loading-spinner styles) ... */
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .upload-section {
+        flex-direction: column;
+        gap: 15px;
+    }
+    .controls {
+        width: 95%;
+        flex-basis: auto;
+    }
+}

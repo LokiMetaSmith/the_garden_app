@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Landscaping Project Verifier - The Garden App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>AI Landscaping Project Verifier</h1>
+
+        <div class="upload-section">
+            <h2>Upload Images</h2>
+            <div class="file-group">
+                <input type="file" id="beforeImageUpload" accept="image/*">
+                <label for="beforeImageUpload" class="button">Upload Before Image</label>
+                <p id="beforeFileName" class="fileName"></p>
+            </div>
+            <div class="file-group">
+                <input type="file" id="afterImageUpload" accept="image/*">
+                <label for="afterImageUpload" class="button">Upload After Image</label>
+                <p id="afterFileName" class="fileName"></p>
+            </div>
+        </div>
+
+        <div class="editor-area">
+            <div class="controls">
+                <div class="section">
+                    <h2>Requested Landscaping Tasks</h2>
+                    <p class="hint">List the specific tasks the contractor was supposed to complete (e.g., "Install new flower bed with roses and mulch; Lay sod in bare dirt area; Trim bushes."). Separate tasks with semicolons or new lines.</p>
+                    <textarea id="requestedTasks" placeholder="Enter tasks here..." rows="8"></textarea>
+                    <button id="analyzeBtn" class="button primary">Analyze & Generate Report</button>
+                </div>
+                <div class="section report-section">
+                    <h2>Project Report</h2>
+                    <pre id="reportOutput"></pre>
+                    <button id="downloadReportBtn" class="button success">Download Report</button>
+                </div>
+            </div>
+        </div>
+        <div id="loading" class="loading-spinner"></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

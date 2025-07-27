@@ -9,7 +9,35 @@ A professional garden scanning and planning solution using AR, photogrammetry, a
 - **Interactive 3D Model:** Visualize your garden and plant locations in 3D.
 - **Professional Reports:** Generate detailed PDF reports for contractor quotes.
 - **Contractor Matching:** Connect with qualified landscapers and contractors.
+# The Garden App: AI Landscaping Project Verifier
 
+This application leverages a powerful multimodal AI model (`llava-onevision` via the NRP API) to analyze "before" and "after" images of a landscaping project, describe the current state, and verify the completion of requested tasks. It generates a comprehensive report, including a list of tasks still pending, which can be crucial for contractor payment verification.
+
+## Features
+
+* **"Before" Image Analysis:** Get a detailed AI-generated description of the initial landscaping state, including lawn condition, garden beds, bare areas, and potential project suggestions.
+* **"After" Image Verification:** Upload a post-project image and provide a list of requested tasks. The AI will compare the "before" and "after" states to verify task completion.
+* **Comprehensive Report Generation:** Receive a structured report summarizing the analysis, task verification, and a clear list of uncompleted tasks.
+* **Contractor Payment Verification:** Easily identify outstanding work before approving payments.
+
+## Technologies Used
+
+* **Backend:** Python (Flask)
+* **Frontend:** HTML, CSS, JavaScript
+* **AI Model:** LLaVA-OneVision (accessed via an OpenAI-compatible API endpoint provided by NRP Nautilus)
+* **Libraries:** `Flask`, `Pillow`, `openai` (Python client for API interaction)
+
+## Setup Instructions
+
+Follow these steps to get the application running on your local machine.
+
+### 1. Clone the Repository
+
+First, clone the `the_garden_app` repository to your local machine:
+
+```bash
+git clone [https://github.com/LokiMetaSmith/the_garden_app.git](https://github.com/LokiMetaSmith/the_garden_app.git)
+cd the_garden_app
 ## Getting Started
 
 ### Prerequisites
