@@ -89,11 +89,11 @@ document.addEventListener('DOMContentLoaded', () => {
             reportOutput.textContent = data.report;
             console.log('Attempted to set reportOutput.textContent.');
 
-        } catch (error) {
+        } catch (error) { // This is the ONLY catch block for the try above
             console.error('Error during fetch or processing:', error);
             reportOutput.textContent = `Error: ${error.message}`; // Display error in report area
             alert('Failed to generate report: ' + error.message);
-        } finally {
+        } finally { // This is the ONLY finally block for the try/catch above
             loadingSpinner.style.display = 'none'; // Hide spinner
         }
     });
