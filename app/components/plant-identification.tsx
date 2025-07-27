@@ -9,8 +9,8 @@ import { Leaf, Search, CheckCircle, AlertCircle } from "lucide-react"
 import Image from "next/image"
 
 interface PlantIdentificationProps {
-  scanData: any
-  onPlantsIdentified: (plants: any[]) => void
+  scanData: any;
+  onPlantsIdentified: (plants: any[]) => void;
 }
 
 export default function PlantIdentification({ scanData, onPlantsIdentified }: PlantIdentificationProps) {
