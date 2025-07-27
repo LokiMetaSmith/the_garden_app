@@ -8,12 +8,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const afterFileNameDisplay = document.getElementById('afterFileName');
     const newTaskInput = document.getElementById('newTaskInput');
     const addTaskBtn = document.getElementById('addTaskBtn');
-    const suggestTasksBtn = document.getElementById('suggestTasksBtn'); // NEW
+    const suggestTasksBtn = document.getElementById('suggestTasksBtn');
     const taskList = document.getElementById('taskList');
     const contractorAccomplishmentsInput = document.getElementById('contractorAccomplishments');
     const analyzeBtn = document.getElementById('analyzeBtn');
     const reportOutput = document.getElementById('reportOutput');
-    const downloadBidBtn = document.getElementById('downloadBidBtn'); // RENAMED
+    const downloadBidBtn = document.getElementById('downloadBidBtn');
     const loadingSpinner = document.getElementById('loading');
 
     // Chat elements
@@ -23,12 +23,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatLoadingSpinner = document.getElementById('chatLoading');
 
     // Block 2 elements
-    const completedTaskList = document.getElementById('completedTaskList'); // NEW
-    const finalizeWorkBtn = document.getElementById('finalizeWorkBtn');   // NEW
+    const completedTaskList = document.getElementById('completedTaskList');
+    const finalizeWorkBtn = document.getElementById('finalizeWorkBtn');
     
     // Block 3 elements
-    const finalReportOutput = document.getElementById('finalReportOutput'); // NEW
-    const downloadFinalReportBtn = document.getElementById('downloadFinalReportBtn'); // NEW
+    const finalReportOutput = document.getElementById('finalReportOutput');
+    const downloadFinalReportBtn = document.getElementById('downloadFinalReportBtn');
 
 
     let beforeImageDataURL = null;
@@ -70,8 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         } else if (event.target.id === 'afterImageUpload') {
                             afterImageDataURLs = dataURLs; // Store all after images
                             console.log('afterImageDataURLs set:', names.join(', '));
-                            // Also update completedTaskList for Block 2 if it's relevant
-                            updateCompletedTaskList();
+                            updateCompletedTaskList(); // Update Block 2's list
                         }
                     }
                 };
@@ -141,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTaskList();
 
 
-    // --- Suggest Tasks Functionality (NEW) ---
+    // --- Suggest Tasks Functionality ---
     suggestTasksBtn.addEventListener('click', async () => {
         console.log('Suggest Tasks button clicked!');
         if (!beforeImageDataURL) {
@@ -169,13 +168,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             console.log('Received Suggested Tasks:', data.suggested_tasks);
 
-            // Populate suggested tasks into the requestedTasks array
             const suggestedTasksArray = data.suggested_tasks.split('\n')
                                         .map(task => task.trim())
-                                        .filter(task => task.length > 0 && task.startsWith('- ')); // Filter out empty lines and ensure bullet format
+                                        .filter(task => task.length > 0 && task.startsWith('- ')); 
 
             suggestedTasksArray.forEach(task => {
-                // Remove the bullet point before adding to our internal array
                 requestedTasks.push(task.substring(2)); 
             });
             renderTaskList(); // Re-render the UI list
@@ -183,10 +180,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             reportOutput.textContent = 'Task suggestions generated and added to your list. Review and click "Analyze & Generate Initial Report".';
             
-            // Re-enable chat after suggestion generation
             chatInput.disabled = false;
             sendChatBtn.disabled = false;
-            // Initialize chat history for this interaction
             chatHistory.innerHTML = '<div class="ai-message">Hi! I can answer questions about your landscaping project. Start by suggesting tasks or analyzing your images.</div>';
             chatConversationHistory = [{ role: 'ai', message: 'Hi! I can answer questions about your landscaping project. Start by suggesting tasks or analyzing your images.' }];
 
@@ -205,18 +200,19 @@ document.addEventListener('DOMContentLoaded', () => {
     analyzeBtn.addEventListener('click', async () => {
         console.log('Analyze button clicked!');
         
-        if (!beforeImageDataURL || afterImageDataURLs.length === 0) { // Still needs an 'after' image for the report, even if it's the first step
-            alert('Please upload both a "Before" and at least one "After" image.');
+        // --- MODIFIED VALIDATION: Only 'before' image is strictly required for initial report ---
+        if (!beforeImageDataURL) { 
+            alert('Please upload a "Before" image to generate the initial report.');
             return;
         }
         if (requestedTasks.length === 0) {
-            alert('Please add some requested landscaping tasks.');
+            alert('Please add some requested landscaping tasks before generating the report.');
             return;
         }
 
         loadingSpinner.style.display = 'block';
         reportOutput.textContent = 'Generating initial project report...';
-        chatInput.disabled = true; // Disable chat during main report generation
+        chatInput.disabled = true; 
         sendChatBtn.disabled = true;
 
         try {
@@ -227,9 +223,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify({
                     before_image: beforeImageDataURL,
-                    // Send only the first after image for the main analysis due to API limitation
-                    after_image: afterImageDataURLs[0], 
-                    requested_tasks: requestedTasks.join('\n'), // Join tasks into a single string for backend
+                    // Send first after image if available, otherwise null
+                    after_image: afterImageDataURLs.length > 0 ? afterImageDataURLs[0] : null, 
+                    requested_tasks: requestedTasks.join('\n'), 
                     contractor_accomplishments: contractorAccomplishmentsInput.value.trim() 
                 }),
             });
@@ -243,13 +239,12 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Received API Response Data:', data);
 
             storedBeforeAnalysisText = data.before_analysis_text;
-            storedOriginalTasksText = data.original_tasks_text; // Use the text returned from backend
+            storedOriginalTasksText = data.original_tasks_text;
             currentReport = data.report; 
 
             reportOutput.textContent = data.report;
             console.log('Attempted to set reportOutput.textContent.');
 
-            // Enable chat after successful report generation
             chatInput.disabled = false;
             sendChatBtn.disabled = false;
             chatHistory.innerHTML = '<div class="ai-message">Hi! I can answer questions about your landscaping project once you\'ve generated the initial report.</div>';
@@ -265,7 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Download Buttons ---
-    downloadBidBtn.addEventListener('click', () => { // RENAMED
+    downloadBidBtn.addEventListener('click', () => { 
         console.log('Download Bid & Analysis button clicked!');
         if (!storedBeforeAnalysisText || !storedOriginalTasksText) {
             alert('Please generate an initial report or tasks first.');
@@ -279,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
                              `This document outlines the initial state and requested tasks for bidding purposes.`;
 
         const link = document.createElement('a');
-        link.download = 'landscaping_bid_analysis.txt'; // Changed filename
+        link.download = 'landscaping_bid_analysis.txt';
         const blob = new Blob([combinedText], { type: 'text/plain' });
         link.href = URL.createObjectURL(blob);
         link.click();
@@ -301,7 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 checkbox.type = 'checkbox';
                 checkbox.id = `task-${index}`;
                 checkbox.value = task;
-                checkbox.className = 'task-checkbox'; // Add class for styling if needed
+                checkbox.className = 'task-checkbox';
 
                 const label = document.createElement('label');
                 label.htmlFor = `task-${index}`;
@@ -320,7 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
     finalizeWorkBtn.addEventListener('click', async () => {
         console.log('Finalize Work button clicked!');
         if (!beforeImageDataURL || afterImageDataURLs.length === 0 || requestedTasks.length === 0) {
-            alert('Please ensure Block 1 and Block 2 (images) are complete.');
+            alert('Please ensure Block 1 is complete and "After Images" are uploaded in Block 2.');
             return;
         }
 
@@ -328,13 +323,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                 .map(checkbox => checkbox.value);
 
         console.log('Contractor Selected Tasks:', selectedTasks);
-        // This button currently doesn't trigger a new API call, but prepares data for a final report.
-        // The final report generation will be triggered by a new button in Block 3.
-        finalReportOutput.textContent = 'Preparing final verification report...';
-        // You'll send this data to a NEW /generate_final_report endpoint in app.py
-        // when the user clicks the "Download Final Report" button in Block 3.
-        // For now, this just logs and sets a temporary message.
-        alert('Data prepared for final report. Now you can generate the final report from Block 3.');
+        alert('Contractor work details prepared. Now you can generate the Final Report from Block 3.');
+        // This button currently doesn't trigger a new API call.
+        // Data prepared here will be used by the Block 3 button.
     });
 
 
@@ -346,28 +337,26 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Get selected tasks from Block 2
         const selectedTasks = Array.from(document.querySelectorAll('.task-checkbox:checked'))
                                 .map(checkbox => checkbox.value);
 
         const contractorAccomplishments = contractorAccomplishmentsInput.value.trim();
 
         finalReportOutput.textContent = 'Generating final verification report...';
-        loadingSpinner.style.display = 'block'; // Use main spinner for this heavy operation
+        loadingSpinner.style.display = 'block';
 
         try {
-            const response = await fetch('/generate_final_report', { // NEW FINAL ENDPOINT
+            const response = await fetch('/generate_final_report', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     before_image: beforeImageDataURL,
-                    // Again, send only the first after image due to API limitation
-                    after_image: afterImageDataURLs[0], 
-                    requested_tasks: requestedTasks.join('\n'), // All requested tasks
+                    after_image: afterImageDataURLs.length > 0 ? afterImageDataURLs[0] : null,
+                    requested_tasks: requestedTasks.join('\n'), 
                     contractor_accomplishments: contractorAccomplishments,
-                    contractor_selected_tasks: selectedTasks // Tasks contractor claims completed
+                    contractor_selected_tasks: selectedTasks
                 }),
             });
 
@@ -378,8 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await response.json();
             console.log('Received Final Report Data:', data);
-            finalReportOutput.textContent = data.final_report; // Display final report
-            // No need to store these for further download unless you want another button just for the final_report content
+            finalReportOutput.textContent = data.final_report;
 
             const finalReportBlob = new Blob([data.final_report], { type: 'text/plain' });
             const link = document.createElement('a');
@@ -428,13 +416,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({
                     user_question: userMessage,
                     before_image: beforeImageDataURL,
-                    after_image: afterImageDataURLs.length > 0 ? afterImageDataURLs[0] : null, // Only send first after image
+                    after_image: afterImageDataURLs.length > 0 ? afterImageDataURLs[0] : null, 
                     context: {
                         before_analysis: storedBeforeAnalysisText,
                         original_tasks: storedOriginalTasksText,
                         contractor_accomplishments: contractorAccomplishmentsInput.value.trim(),
                         full_report: currentReport,
-                        conversation_history: chatConversationHistory // Send history for continuity
+                        conversation_history: chatConversationHistory 
                     }
                 }),
             });

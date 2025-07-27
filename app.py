@@ -25,7 +25,7 @@ client = OpenAI(
 )
 
 LLAVA_MODEL_ID = "llava-onevision"
-TEXT_LLM_MODEL_ID = "llama3" # Assuming 'llama3' is available and suitable for text-only questions
+TEXT_LLM_MODEL_ID = "llama3" 
 
 # --- Helper Functions ---
 def pil_to_base64_data_url(pil_image, format="PNG"):
@@ -38,14 +38,10 @@ def base64_data_url_to_pil(data_url):
     data = base64.b64decode(encoded)
     return Image.open(io.BytesIO(data)).convert("RGB")
 
-# Function to build messages list for OpenAI chat API, handling image_url type
-# This helper is primarily used for the initial analysis calls, not the chat endpoint directly now.
 def build_messages_with_image(prompt_text, image_data_url=None, context_messages=None):
     messages = []
-    # Add previous conversation history if provided (simplified for initial calls)
     if context_messages:
         for msg in context_messages:
-            # Assuming context_messages have 'role' and 'content' (which can be a list for multimodal)
             messages.append({"role": msg['role'], "content": msg['content']})
 
     user_content = [{"type": "text", "text": prompt_text}]
@@ -82,7 +78,7 @@ def suggest_tasks():
             model=LLAVA_MODEL_ID,
             messages=build_messages_with_image(suggest_prompt, before_image_data_url),
             max_tokens=500,
-            temperature=0.8, # A bit more creative for suggestions
+            temperature=0.8,
         )
         suggested_tasks_text = response.choices[0].message.content
         print(f"Suggested Tasks: {suggested_tasks_text}")
@@ -102,8 +98,9 @@ def analyze_landscaping():
     try:
         data = request.json
         before_image_data_url = data['before_image']
-        after_image_data_url = data['after_image'] # This is the first after image
-        requested_tasks_text = data['requested_tasks'] # Newline-separated string of all tasks
+        # This can now be null if no after image is provided for initial report
+        after_image_data_url = data['after_image'] 
+        requested_tasks_text = data['requested_tasks']
         contractor_accomplishments_text = data.get('contractor_accomplishments', '') 
 
         # --- Phase 1: Describe the "Before" Image ---
@@ -128,41 +125,43 @@ def analyze_landscaping():
         before_analysis = before_response.choices[0].message.content
         print("Before Analysis Complete.")
 
-        # --- Phase 2: Analyze "After" Image and Verify Tasks (Adjusted for single image input) ---
-        verification_prompt = (
-            "You are a meticulous landscape project manager focused on quality assurance. "
-            "You need to verify if landscaping tasks have been completed by a contractor. "
-            "I will provide an 'after' image (the current state) and descriptions of the "
-            "original 'before' state and the requested tasks. "
-            "Also, the contractor has provided the following statement about their accomplishments: "
-            f"'{contractor_accomplishments_text}'\n\n"
-            
-            f"Here is a description of the 'before' (initial) state:\n{before_analysis}\n\n"
-            f"Here are the requested tasks:\n{requested_tasks_text}\n\n"
-            
-            "Compare the *current image* (the 'after' image you are analyzing now) "
-            "to the provided 'before' state description, the requested tasks, and the contractor's statement. "
-            "For each task, clearly state its completion status based on the visual evidence "
-            "in the *current image*. "
-            "If a task is *not* completed, describe precisely what is still missing or what needs to be done. "
-            "If a task is completed, briefly describe the visual evidence confirming its completion. "
-            "Present your findings in a clear, concise, bulleted checklist format, one bullet point per task.\n\n"
-            "Example Format:\n"
-            "- Task: Install new rose garden\n  Status: Completed. New rose bushes are visible with fresh mulch in the designated area.\n"
-            "- Task: Lay sod in bare area\n  Status: Not completed. The bare dirt area still shows dirt and weeds; new sod has not been laid.\n"
-            "- Task: Trim bushes\n  Status: Partially completed. Some bushes appear trimmed, but the large hedge near the fence is still overgrown.\n\n"
-            "Now, analyze the *current 'after' image* and verify the tasks:"
-        )
+        # --- Phase 2: Conditionally Analyze "After" Image and Verify Tasks ---
+        task_verification_report_raw = "N/A - After image not provided for initial report."
+        if after_image_data_url: # Only run verification if after image is present
+            verification_prompt = (
+                "You are a meticulous landscape project manager focused on quality assurance. "
+                "You need to verify if landscaping tasks have been completed by a contractor. "
+                "I will provide an 'after' image (the current state) and descriptions of the "
+                "original 'before' state and the requested tasks. "
+                "Also, the contractor has provided the following statement about their accomplishments: "
+                f"'{contractor_accomplishments_text}'\n\n"
+                
+                f"Here is a description of the 'before' (initial) state:\n{before_analysis}\n\n"
+                f"Here are the requested tasks:\n{requested_tasks_text}\n\n"
+                
+                "Compare the *current image* (the 'after' image you are analyzing now) "
+                "to the provided 'before' state description, the requested tasks, and the contractor's statement. "
+                "For each task, clearly state its completion status based on the visual evidence "
+                "in the *current image*. "
+                "If a task is *not* completed, describe precisely what is still missing or what needs to be done. "
+                "If a task is completed, briefly describe the visual evidence confirming its completion. "
+                "Present your findings in a clear, concise, bulleted checklist format, one bullet point per task.\n\n"
+                "Example Format:\n"
+                "- Task: Install new rose garden\n  Status: Completed. New rose bushes are visible with fresh mulch in the designated area.\n"
+                "- Task: Lay sod in bare area\n  Status: Not completed. The bare dirt area still shows dirt and weeds; new sod has not been laid.\n"
+                "- Task: Trim bushes\n  Status: Partially completed. Some bushes appear trimmed, but the large hedge near the fence is still overgrown.\n\n"
+                "Now, analyze the *current 'after' image* and verify the tasks:"
+            )
 
-        print("Sending 'After' image for task verification to LLaVA-OneVision (with 'before' and contractor context)...")
-        after_response = client.chat.completions.create(
-            model=LLAVA_MODEL_ID,
-            messages=build_messages_with_image(verification_prompt, after_image_data_url),
-            max_tokens=1500,
-            temperature=0.7,
-        )
-        task_verification_report_raw = after_response.choices[0].message.content
-        print("Task Verification Complete.")
+            print("Sending 'After' image for task verification to LLaVA-OneVision (with 'before' and contractor context)...")
+            after_response = client.chat.completions.create(
+                model=LLAVA_MODEL_ID,
+                messages=build_messages_with_image(verification_prompt, after_image_data_url),
+                max_tokens=1500,
+                temperature=0.7,
+            )
+            task_verification_report_raw = after_response.choices[0].message.content
+            print("Task Verification Complete.")
 
         # --- Generate Initial Report ---
         initial_report_sections = []
@@ -173,18 +172,22 @@ def analyze_landscaping():
         initial_report_sections.append("\n### 2. Requested Tasks (from your list)\n")
         initial_report_sections.append(f"{requested_tasks_text}\n")
         
-        # Add a section for initial verification based on first 'after' image
-        initial_report_sections.append("\n### 3. Initial Task Verification (Based on First After Image)\n")
-        initial_report_sections.append(task_verification_report_raw)
+        # Only add verification section if an after image was processed
+        if after_image_data_url:
+            initial_report_sections.append("\n### 3. Initial Task Verification (Based on After Image Provided)\n")
+            initial_report_sections.append(task_verification_report_raw)
+        else:
+            initial_report_sections.append("\n### 3. Initial Task Verification (After Image Not Provided Yet)\n")
+            initial_report_sections.append("Please upload 'After Image(s)' in Block 2 and generate the Final Report in Block 3 for task verification.")
+
 
         full_initial_report_text = "".join(initial_report_sections)
         print("Initial Report Generated.")
 
-        # --- RETURN INITIAL REPORT AND SEPARATE SECTIONS ---
         return jsonify({
-            "report": full_initial_report_text, # This is the main report for Block 1
+            "report": full_initial_report_text,
             "before_analysis_text": before_analysis,
-            "original_tasks_text": requested_tasks_text
+            "original_tasks_text": requested_tasks_text # This is the newline-separated string
         })
 
     except APIError as e:
@@ -205,6 +208,12 @@ def generate_final_report():
         contractor_accomplishments_text = data.get('contractor_accomplishments', '')
         contractor_selected_tasks_list = data.get('contractor_selected_tasks', [])
 
+        # --- Validate essential inputs for final report ---
+        if not before_image_data_url or not after_image_data_url:
+            return jsonify({"error": "Both 'before' and 'after' images are required for final report generation."}), 400
+        if not all_requested_tasks_text:
+            return jsonify({"error": "Requested tasks from Block 1 are required for final report generation."}), 400
+
         # Generate fresh analysis of 'before' image (could cache this from analyze_landscaping if preferred)
         before_description_prompt = (
             "Describe the initial state of this landscaping image in detail. Focus on elements like lawn health, bare areas, existing plants, and any visible problems."
@@ -221,17 +230,24 @@ def generate_final_report():
 
         # Prompt for final verification and payment validation
         final_verification_prompt = (
-            "You are a strict landscaping project quality assurance auditor. "
-            "You need to provide a final decision on whether a contractor's work meets requirements for payment validation. "
+            "You are a strict, but reasonable, landscaping project quality assurance auditor. "
+            "Your goal is to provide a final decision on whether a contractor's work meets requirements for payment validation. "
+            "You must consider the *spirit and intent* of the requested tasks, allowing for common and functionally equivalent material substitutions "
+            "unless the original request *explicitly* specified a unique or non-substitutable material. "
+            "If a material is substituted, note it, but only mark the task as 'Not Completed' if the substitution fundamentally alters the task's purpose, functionality, or significantly degrades quality/aesthetics in the context of general landscaping. "
+            "If there's a minor material substitution that achieves the same purpose (e.g., bricks instead of rocks for a border, unless specific rock type was crucial), consider it 'Completed' but note the substitution. "
+            "If the request was for 'rocks' and 'bricks' were used, acknowledge the substitution but if the border is functional and aesthetic, you might consider it 'Completed (with material substitution)' unless explicitly instructed otherwise or there's a clear negative impact."
             "I will provide:\n"
             f"1. Description of the 'before' state: {before_analysis_for_final}\n"
             f"2. All originally requested tasks: {all_requested_tasks_text}\n"
             f"3. Contractor's self-reported accomplishments: {contractor_accomplishments_text if contractor_accomplishments_text else 'N/A'}\n"
             f"4. Specific tasks the contractor claims they completed: {contractor_selected_tasks_str}\n\n"
             "Based on the *current 'after' image* you are analyzing, and all the provided textual context, perform the following steps:\n"
-            "A. **VERIFY ALL REQUESTED TASKS:** Go through 'All originally requested tasks' one by one. For each task, visually inspect the 'after' image. State whether it is 'Completed', 'Partially Completed', or 'Not Completed'. Provide brief visual evidence for your assessment. Use a bulleted list for each task.\n"
-            "B. **COMPARE TO CONTRACTOR'S CLAIM:** Briefly comment on whether the contractor's self-reported accomplishments align with your visual verification.\n"
-            "C. **PAYMENT VALIDATION DECISION:** Based on your thorough verification of ALL originally requested tasks, provide a clear decision: 'Meets Requirements for Payment', 'Partially Meets Requirements - Further Action Needed', or 'Does Not Meet Requirements - Payment Withheld'. Justify your decision with specific reasons related to uncompleted or unsatisfactory tasks.\n\n"
+            "A. **VERIFY ALL REQUESTED TASKS:** Go through 'All originally requested tasks' one by one. For each task, visually inspect the 'after' image. State whether it is 'Completed', 'Partially Completed', or 'Not Completed'. "
+            "If there's a material substitution, indicate 'Completed (with material substitution)' or 'Partially Completed (with material substitution)' and specify the substitution. "
+            "Provide brief visual evidence for your assessment. Use a bulleted list for each task.\n"
+            "B. **COMPARE TO CONTRACTOR'S CLAIM:** Briefly comment on whether the contractor's self-reported accomplishments align with your visual verification, specifically noting any claimed tasks that appear incomplete or any unrequested work that was done.\n"
+            "C. **PAYMENT VALIDATION DECISION:** Based on your thorough verification of ALL originally requested tasks, and considering the flexibility for material substitution as described, provide a clear decision: 'Meets Requirements for Payment', 'Partially Meets Requirements - Further Action Needed', or 'Does Not Meet Requirements - Payment Withheld'. Justify your decision with specific reasons related to uncompleted, unsatisfactory, or fundamentally altered tasks.\n\n"
             "Present your response clearly, with sections A, B, and C as described."
         )
 
@@ -267,19 +283,14 @@ def chat_query():
         context = data['context']
 
         # Determine which model to use based on question type and image availability
-        # If any image is available, and the question might benefit from vision, use LLaVA.
-        # Otherwise, if it's purely text and Llama3 is defined, use Llama3.
-        # Default to LLaVA if no specific TEXT_LLM_MODEL_ID or if images are present.
         use_llama3 = False
         current_model_id = LLAVA_MODEL_ID
         if not before_image_data_url and not after_image_data_url and TEXT_LLM_MODEL_ID:
-            # Simple heuristic: if no images, use Llama3
             use_llama3 = True
             current_model_id = TEXT_LLM_MODEL_ID
             print("Using Llama3 for text-only chat query.")
         else:
             print("Using LLaVA-OneVision for chat query (image context available).")
-
 
         # Reconstruct messages list for the API call
         messages_for_api = []
@@ -290,9 +301,9 @@ def chat_query():
                 role = "user" if msg['role'] == 'user' else "assistant"
                 # Check if content is already in the OpenAI multimodal format (list of dicts)
                 # or if it's a simple text string.
-                if isinstance(msg.get('content'), list):
+                if isinstance(msg.get('content'), list): 
                     messages_for_api.append({"role": role, "content": msg['content']})
-                else:
+                else: 
                     messages_for_api.append({"role": role, "content": msg.get('message', '')})
 
 
@@ -309,11 +320,11 @@ def chat_query():
         current_user_content = [{"type": "text", "text": context_text + "User's Question: " + user_question}]
 
         # Add images only if using LLaVA and images are present, respecting 1-image-per-request limit
-        if not use_llama3: # Only add images if using a multimodal model
+        if not use_llama3: 
             if after_image_data_url:
                 current_user_content.append({"type": "image_url", "image_url": {"url": after_image_data_url}})
                 print("Attaching 'After' image to chat query.")
-            elif before_image_data_url: # Only attach before if after is not present
+            elif before_image_data_url: 
                 current_user_content.append({"type": "image_url", "image_url": {"url": before_image_data_url}})
                 print("Attaching 'Before' image to chat query.")
         
