@@ -1,5 +1,6 @@
 # app.py
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 from PIL import Image
 import io
 import base64
@@ -8,6 +9,7 @@ from openai import OpenAI, APIError
 from datetime import datetime
 
 app = Flask(__name__)
+CORS(app, origins=["http://localhost:5173", "https://cotterslist.com"])
 
 # --- API Configuration ---
 NRP_API_KEY = os.environ.get("NRP_API_KEY")
