@@ -10,63 +10,80 @@
     <div class="container">
         <h1>AI Landscaping Project Verifier</h1>
 
-        <div class="upload-section">
-            <h2>Upload Images</h2>
-            <div class="file-group">
-                <input type="file" id="beforeImageUpload" accept="image/*">
-                <label for="beforeImageUpload" class="button">Upload Before Image</label>
-                <p id="beforeFileName" class="fileName"></p>
+        <div class="block-section">
+            <h2>Block 1: Task Ideation & Requirements</h2>
+            <div class="upload-section">
+                <h3>Upload Before Image</h3>
+                <div class="file-group">
+                    <input type="file" id="beforeImageUpload" accept="image/*">
+                    <label for="beforeImageUpload" class="button">Upload Before Image</label>
+                    <p id="beforeFileName" class="fileName">No file chosen</p>
+                </div>
             </div>
-            <div class="file-group">
-                <input type="file" id="afterImageUpload" accept="image/*" multiple>
-                <label for="afterImageUpload" class="button">Upload After Image(s)</label>
-                <p id="afterFileName" class="fileName">No files chosen</p>
+
+            <div class="section">
+                <h3>Define Requested Landscaping Tasks</h3>
+                <p class="hint">Add individual tasks the contractor is expected to complete, or ask AI for suggestions.</p>
+                <div class="task-input-group">
+                    <input type="text" id="newTaskInput" placeholder="e.g., Install new rose garden">
+                    <button id="addTaskBtn" class="button secondary">Add Task</button>
+                    <button id="suggestTasksBtn" class="button">Suggest Tasks (AI)</button> </div>
+                <ul id="taskList">
+                </ul>
             </div>
-        </div>
 
-        <div class="editor-area">
-            <div class="controls">
-                <div class="section">
-                    <h2>1. Define Requested Landscaping Tasks</h2>
-                    <p class="hint">Add individual tasks the contractor is expected to complete.</p>
-                    <div class="task-input-group">
-                        <input type="text" id="newTaskInput" placeholder="e.g., Install new rose garden">
-                        <button id="addTaskBtn" class="button secondary">Add Task</button>
-                    </div>
-                    <ul id="taskList">
-                        </ul>
+            <div class="section conversation-section">
+                <h3>Q&A Follow-up (Related to Before Image & Tasks)</h3>
+                <p class="hint">Ask questions about the 'Before' image or suggested tasks. Click "Suggest Tasks" or "Analyze" first!</p>
+                <div id="chatHistory">
+                    <div class="ai-message">Hi! I can answer questions about your landscaping project. Start by suggesting tasks or analyzing your images.</div>
                 </div>
-
-                <div class="section">
-                    <h2>2. Contractor's Accomplishments (Optional)</h2>
-                    <p class="hint">Contractor describes the work they believe was accomplished in the 'After' image(s).</p>
-                    <textarea id="contractorAccomplishments" placeholder="E.g., I installed new sod in the bare patch and trimmed all the hedges. The rose garden was planted as requested." rows="5"></textarea>
+                <div class="chat-input-group">
+                    <input type="text" id="chatInput" placeholder="Ask a question (e.g., What type of grass is this?)..." disabled>
+                    <button id="sendChatBtn" class="button primary" disabled>Send</button>
                 </div>
+                <div id="chatLoading" class="chat-loading-spinner"></div>
+            </div>
 
-                <button id="analyzeBtn" class="button primary">Analyze & Generate Report</button>
-
-                <div class="section report-section">
-                    <h2>Project Report</h2>
-                    <pre id="reportOutput"></pre>
-                    <button id="downloadReportBtn" class="button success">Download Full Report</button>
-                    <button id="downloadBeforeTasksBtn" class="button">Download Before Analysis & Tasks</button>
-                </div>
-
-                <div class="section conversation-section">
-                    <h2>3. Ask Follow-up Questions</h2>
-                    <p class="hint">Ask questions about the images, tasks, or report. Click "Analyze & Generate Report" first!</p>
-                    <div id="chatHistory">
-                        <div class="ai-message">Hi! I can answer questions about your landscaping project once you've generated the initial report.</div>
-                    </div>
-                    <div class="chat-input-group">
-                        <input type="text" id="chatInput" placeholder="Ask a question (e.g., What type of grass is in the after images?)..." disabled>
-                        <button id="sendChatBtn" class="button primary" disabled>Send</button>
-                    </div>
-                    <div id="chatLoading" class="chat-loading-spinner"></div>
-                </div>
-
+            <button id="analyzeBtn" class="button primary">Analyze & Generate Initial Report</button> <div class="section report-section">
+                <h3>Initial Project Report</h3> <pre id="reportOutput"></pre>
+                <button id="downloadBidBtn" class="button success">Download Bid & Analysis</button> <p class="hint">This report describes the 'Before' image and the initial tasks.</p>
             </div>
         </div>
+
+        <div class="block-section">
+            <h2>Block 2: Contractor's Work Details</h2>
+            <div class="upload-section">
+                <h3>Upload After Image(s)</h3>
+                <div class="file-group">
+                    <input type="file" id="afterImageUpload" accept="image/*" multiple>
+                    <label for="afterImageUpload" class="button">Upload After Image(s)</label>
+                    <p id="afterFileName" class="fileName">No files chosen</p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Contractor's Accomplishments (Optional)</h3>
+                <p class="hint">Contractor describes the work they believe was accomplished in the 'After' image(s).</p>
+                <textarea id="contractorAccomplishments" placeholder="E.g., I installed new sod in the bare patch and trimmed all the hedges. The rose garden was planted as requested." rows="5"></textarea>
+            </div>
+
+            <div class="section">
+                <h3>Select Completed Tasks</h3>
+                <p class="hint">Contractor can select which of the requested tasks they completed.</p>
+                <ul id="completedTaskList">
+                    <p class="hint-small">Generate tasks in Block 1 first.</p>
+                </ul>
+                <button id="finalizeWorkBtn" class="button primary">Finalize Work (For Final Report)</button> </div>
+        </div>
+
+        <div class="block-section">
+            <h2>Block 3: Final Report & Payment Validation</h2>
+            <div class="section report-section">
+                <h3>Final Project Verification Report</h3>
+                <pre id="finalReportOutput"></pre> <button id="downloadFinalReportBtn" class="button success">Download Final Report</button> </div>
+        </div>
+
         <div id="loading" class="loading-spinner"></div>
     </div>
 
