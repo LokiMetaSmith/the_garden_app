@@ -18,9 +18,9 @@
                 <p id="beforeFileName" class="fileName"></p>
             </div>
             <div class="file-group">
-                <input type="file" id="afterImageUpload" accept="image/*">
-                <label for="afterImageUpload" class="button">Upload After Image</label>
-                <p id="afterFileName" class="fileName"></p>
+                <input type="file" id="afterImageUpload" accept="image/*" multiple>
+                <label for="afterImageUpload" class="button">Upload After Image(s)</label>
+                <p id="afterFileName" class="fileName">No files chosen</p>
             </div>
         </div>
 
@@ -39,7 +39,7 @@
 
                 <div class="section">
                     <h2>2. Contractor's Accomplishments (Optional)</h2>
-                    <p class="hint">Contractor describes the work they believe was accomplished in the 'After' image.</p>
+                    <p class="hint">Contractor describes the work they believe was accomplished in the 'After' image(s).</p>
                     <textarea id="contractorAccomplishments" placeholder="E.g., I installed new sod in the bare patch and trimmed all the hedges. The rose garden was planted as requested." rows="5"></textarea>
                 </div>
 
@@ -51,6 +51,20 @@
                     <button id="downloadReportBtn" class="button success">Download Full Report</button>
                     <button id="downloadBeforeTasksBtn" class="button">Download Before Analysis & Tasks</button>
                 </div>
+
+                <div class="section conversation-section">
+                    <h2>3. Ask Follow-up Questions</h2>
+                    <p class="hint">Ask questions about the images, tasks, or report. Click "Analyze & Generate Report" first!</p>
+                    <div id="chatHistory">
+                        <div class="ai-message">Hi! I can answer questions about your landscaping project once you've generated the initial report.</div>
+                    </div>
+                    <div class="chat-input-group">
+                        <input type="text" id="chatInput" placeholder="Ask a question (e.g., What type of grass is in the after images?)..." disabled>
+                        <button id="sendChatBtn" class="button primary" disabled>Send</button>
+                    </div>
+                    <div id="chatLoading" class="chat-loading-spinner"></div>
+                </div>
+
             </div>
         </div>
         <div id="loading" class="loading-spinner"></div>
