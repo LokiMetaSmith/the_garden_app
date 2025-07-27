@@ -129,7 +129,90 @@ textarea {
     text-align: left;
     font-family: monospace; /* For report readability */
 }
+.task-input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
 
+.task-input-group input[type="text"] {
+    flex-grow: 1;
+    width: auto; /* Override calc(100% - 22px) for flex item */
+    margin: 0; /* Remove default margins */
+}
+
+.task-input-group .button {
+    flex-shrink: 0; /* Prevent button from shrinking */
+    padding: 8px 15px;
+    font-size: 14px;
+    margin: 0;
+}
+
+.button.secondary {
+    background-color: #6c757d; /* A neutral gray */
+}
+
+.button.secondary:hover {
+    background-color: #5a6268;
+}
+
+ul#taskList {
+    list-style: none; /* Remove default bullet points */
+    padding: 0;
+    margin-top: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    min-height: 50px; /* Give it some space */
+    background-color: #fff;
+    max-height: 150px; /* Make it scrollable if many tasks */
+    overflow-y: auto;
+    text-align: left;
+}
+
+ul#taskList li {
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95em;
+    word-break: break-word; /* Wrap long task descriptions */
+}
+
+ul#taskList li:last-child {
+    border-bottom: none;
+}
+
+ul#taskList li button.remove-task-btn {
+    background: none;
+    border: none;
+    color: #dc3545; /* Red for delete */
+    font-size: 1.2em;
+    cursor: pointer;
+    margin-left: 10px;
+    padding: 0 5px;
+}
+
+ul#taskList li button.remove-task-btn:hover {
+    color: #a71d2a;
+}
+
+textarea#contractorAccomplishments {
+    width: calc(100% - 22px);
+    padding: 10px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    resize: vertical;
+    font-family: Arial, sans-serif; /* Ensure it uses a readable font */
+}
+
+/* Add some extra space around the main analyze button */
+.controls > .button.primary {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
 /* ... (keep loading-spinner styles) ... */
 
 /* Responsive adjustments */
