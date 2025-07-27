@@ -48,7 +48,8 @@ def analyze_landscaping():
         data = request.json
         before_image_data_url = data['before_image']
         after_image_data_url = data['after_image']
-        requested_tasks_text = data['requested_tasks'] # This is the original tasks text
+        requested_tasks_text = data['requested_tasks'] # This is the original tasks text (now newline separated)
+        contractor_accomplishments_text = data.get('contractor_accomplishments', '') # NEW: Get contractor's text
 
         # --- Phase 1: Describe the "Before" Image ---
         before_description_prompt = (
@@ -80,31 +81,42 @@ def analyze_landscaping():
         before_analysis = before_response.choices[0].message.content
         print("Before Analysis Complete.")
 
-        # --- Phase 2: Analyze "After" Image and Verify Tasks (Adjusted for single image input) ---
+        # --- Phase 2: Analyze "After" Image and Verify Tasks (Adjusted for single image input and contractor claims) ---
         verification_prompt = (
             "You are a meticulous landscape project manager focused on quality assurance. "
             "You need to verify if landscaping tasks have been completed by a contractor. "
-            "I will provide an 'after' image (the current state) and descriptions of the "
-            "original 'before' state and the requested tasks. "
+            "I will provide an 'after' image (the current state), descriptions of the "
+            "original 'before' state, a list of requested tasks, and optionally, "
+            "a statement from the contractor about their accomplishments. "
             
             f"Here is a description of the 'before' (initial) state:\n{before_analysis}\n\n"
             f"Here are the requested tasks:\n{requested_tasks_text}\n\n"
-            
-            "Compare the *current image* (the 'after' image you are analyzing now) "
-            "to the provided 'before' state description and the requested tasks. "
-            "For each task, clearly state its completion status based on the visual evidence "
-            "in the *current image*. "
+        )
+        
+        if contractor_accomplishments_text:
+            verification_prompt += (
+                f"The contractor claims to have accomplished the following:\n"
+                f"{contractor_accomplishments_text}\n\n"
+            )
+
+        verification_prompt += (
+            "Your job is to compare the *current image* (the 'after' image you are analyzing now) "
+            "to the provided 'before' state description, the requested tasks, "
+            "and the contractor's claimed accomplishments (if provided). "
+            "For each task in the 'requested tasks' list, clearly state its completion status "
+            "based on the visual evidence in the *current image*. "
             "If a task is *not* completed, describe precisely what is still missing or what needs to be done. "
             "If a task is completed, briefly describe the visual evidence confirming its completion. "
+            "If the contractor made a specific claim, evaluate if that claim is supported by the visual evidence for the relevant tasks. "
             "Present your findings in a clear, concise, bulleted checklist format, one bullet point per task.\n\n"
             "Example Format:\n"
             "- Task: Install new rose garden\n  Status: Completed. New rose bushes are visible with fresh mulch in the designated area.\n"
             "- Task: Lay sod in bare area\n  Status: Not completed. The bare dirt area still shows dirt and weeds; new sod has not been laid.\n"
-            "- Task: Trim bushes\n  Status: Partially completed. Some bushes appear trimmed, but the large hedge near the right edge of the image is still overgrown.\n\n"
+            "- Task: Trim bushes\n  Status: Partially completed. Some bushes appear trimmed, but the large hedge near the fence is still overgrown.\n\n"
             "Now, analyze the *current 'after' image* and verify the tasks:"
         )
 
-        print("Sending 'After' image for task verification to LLaVA-OneVision (with 'before' context)...")
+        print("Sending 'After' image for task verification to LLaVA-OneVision (with 'before' context and contractor claims)...")
         after_response = client.chat.completions.create(
             model=LLAVA_MODEL_ID,
             messages=[
@@ -112,7 +124,7 @@ def analyze_landscaping():
                     "role": "user",
                     "content": [
                         {"type": "text", "text": verification_prompt},
-                        {"type": "image_url", "image_url": {"url": after_image_data_url}}, # Only one image here
+                        {"type": "image_url", "image_url": {"url": after_image_data_url}},
                     ],
                 }
             ],
@@ -131,7 +143,11 @@ def analyze_landscaping():
 
         final_report_sections.append("\n### 2. Requested Tasks Verification\n")
         final_report_sections.append(f"Original Requested Tasks:\n{requested_tasks_text}\n")
-        final_report_sections.append("Verification Report:\n")
+        
+        if contractor_accomplishments_text:
+            final_report_sections.append(f"\nContractor's Claimed Accomplishments:\n{contractor_accomplishments_text}\n")
+
+        final_report_sections.append("\nVerification Report:\n")
         final_report_sections.append(task_verification_report_raw)
 
         uncompleted_tasks_for_payment = []
@@ -162,7 +178,8 @@ def analyze_landscaping():
         return jsonify({
             "report": full_report_text,
             "before_analysis_text": before_analysis,
-            "original_tasks_text": requested_tasks_text # Already have this variable
+            "original_tasks_text": requested_tasks_text,
+            "contractor_accomplishments_text": contractor_accomplishments_text # NEW: Return this too
         })
 
     except APIError as e:
