@@ -1,5 +1,6 @@
 # app.py
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 from PIL import Image
 import io
 import base64
@@ -8,6 +9,7 @@ from openai import OpenAI, APIError
 from datetime import datetime
 
 app = Flask(__name__)
+CORS(app, origins=["http://localhost:5173", "https://cotterslist.com"])
 
 # --- API Configuration ---
 NRP_API_KEY = os.environ.get("NRP_API_KEY")
@@ -25,7 +27,7 @@ client = OpenAI(
 )
 
 LLAVA_MODEL_ID = "llava-onevision"
-CHAT_LLM_MODEL_ID = "llama3" # Dedicated LLM for chat and synthesis
+TEXT_LLM_MODEL_ID = "llama3" 
 
 # --- Helper Functions ---
 def pil_to_base64_data_url(pil_image, format="PNG"):
@@ -38,22 +40,72 @@ def base64_data_url_to_pil(data_url):
     data = base64.b64decode(encoded)
     return Image.open(io.BytesIO(data)).convert("RGB")
 
+def build_messages_with_image(prompt_text, image_data_url=None, context_messages=None):
+    messages = []
+    if context_messages:
+        for msg in context_messages:
+            messages.append({"role": msg['role'], "content": msg['content']})
+
+    user_content = [{"type": "text", "text": prompt_text}]
+    if image_data_url:
+        user_content.append({"type": "image_url", "image_url": {"url": image_data_url}})
+    
+    messages.append({"role": "user", "content": user_content})
+    return messages
+
+
 # --- Flask Routes ---
 @app.route('/')
 def index():
     return render_template('index.html')
+
+# --- NEW ENDPOINT for Suggesting Tasks (Block 1) ---
+@app.route('/suggest_tasks', methods=['POST'])
+def suggest_tasks():
+    try:
+        data = request.json
+        before_image_data_url = data['before_image']
+
+        suggest_prompt = (
+            "You are an AI landscape designer assistant. "
+            "Analyze the provided 'before' image of a landscaping area. "
+            "Based on what you see (e.g., bare spots, overgrown areas, existing features, soil condition), "
+            "suggest a bulleted list of 5-10 specific, actionable landscaping tasks that could be done "
+            "to improve the area. Focus on practical improvements like planting, trimming, mulching, adding features, etc. "
+            "Each task should be concise and start with a bullet point '- '."
+        )
+
+        print("Sending 'Before' image for task suggestions to LLaVA-OneVision...")
+        response = client.chat.completions.create(
+            model=LLAVA_MODEL_ID,
+            messages=build_messages_with_image(suggest_prompt, before_image_data_url),
+            max_tokens=500,
+            temperature=0.8,
+        )
+        suggested_tasks_text = response.choices[0].message.content
+        print(f"Suggested Tasks: {suggested_tasks_text}")
+
+        return jsonify({"suggested_tasks": suggested_tasks_text})
+
+    except APIError as e:
+        print(f"API Error suggesting tasks: {e}")
+        return jsonify({"error": f"API Error: {e.status_code} - {e.response.json() if e.response else str(e)}"}), 500
+    except Exception as e:
+        print(f"Unexpected error suggesting tasks: {e}")
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+
 
 @app.route('/analyze_landscaping', methods=['POST'])
 def analyze_landscaping():
     try:
         data = request.json
         before_image_data_url = data['before_image']
-        # MODIFIED: Receive array of after images
-        after_image_data_urls = data['after_images'] 
+        # This can now be null if no after image is provided for initial report
+        after_image_data_url = data['after_image'] 
         requested_tasks_text = data['requested_tasks']
-        contractor_accomplishments_text = data.get('contractor_accomplishments', '')
+        contractor_accomplishments_text = data.get('contractor_accomplishments', '') 
 
-        # --- Phase 1: Describe the "Before" Image (uses LLaVA) ---
+        # --- Phase 1: Describe the "Before" Image ---
         before_description_prompt = (
             "You are a professional landscape designer and inspector. "
             "Analyze the 'before' image provided. Describe in detail the current state "
@@ -68,240 +120,238 @@ def analyze_landscaping():
         print("Sending 'Before' image analysis request to LLaVA-OneVision...")
         before_response = client.chat.completions.create(
             model=LLAVA_MODEL_ID,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": before_description_prompt},
-                        {"type": "image_url", "image_url": {"url": before_image_data_url}},
-                    ],
-                }
-            ],
+            messages=build_messages_with_image(before_description_prompt, before_image_data_url),
             max_tokens=1000,
             temperature=0.7,
         )
         before_analysis = before_response.choices[0].message.content
         print("Before Analysis Complete.")
 
-        # --- Phase 2: Analyze EACH "After" Image individually with LLaVA ---
-        individual_after_image_analyses = []
-        for i, after_img_url in enumerate(after_image_data_urls):
-            individual_analysis_prompt = (
-                f"You are a meticulous landscape inspector. "
-                f"This is 'After Image {i+1}' from a project. "
+        # --- Phase 2: Conditionally Analyze "After" Image and Verify Tasks ---
+        task_verification_report_raw = "N/A - After image not provided for initial report."
+        if after_image_data_url: # Only run verification if after image is present
+            verification_prompt = (
+                "You are a meticulous landscape project manager focused on quality assurance. "
+                "You need to verify if landscaping tasks have been completed by a contractor. "
+                "I will provide an 'after' image (the current state) and descriptions of the "
+                "original 'before' state and the requested tasks. "
+                "Also, the contractor has provided the following statement about their accomplishments: "
+                f"'{contractor_accomplishments_text}'\n\n"
+                
                 f"Here is a description of the 'before' (initial) state:\n{before_analysis}\n\n"
                 f"Here are the requested tasks:\n{requested_tasks_text}\n\n"
-                f"If applicable, here are the contractor's claimed accomplishments:\n{contractor_accomplishments_text if contractor_accomplishments_text else 'None provided.'}\n\n"
-                f"Describe the visual content of 'After Image {i+1}' specifically regarding "
-                f"the requested tasks and any changes observed compared to the 'before' state. "
-                f"Highlight areas that appear completed or incomplete from this specific angle/view."
+                
+                "Compare the *current image* (the 'after' image you are analyzing now) "
+                "to the provided 'before' state description, the requested tasks, and the contractor's statement. "
+                "For each task, clearly state its completion status based on the visual evidence "
+                "in the *current image*. "
+                "If a task is *not* completed, describe precisely what is still missing or what needs to be done. "
+                "If a task is completed, briefly describe the visual evidence confirming its completion. "
+                "Present your findings in a clear, concise, bulleted checklist format, one bullet point per task.\n\n"
+                "Example Format:\n"
+                "- Task: Install new rose garden\n  Status: Completed. New rose bushes are visible with fresh mulch in the designated area.\n"
+                "- Task: Lay sod in bare area\n  Status: Not completed. The bare dirt area still shows dirt and weeds; new sod has not been laid.\n"
+                "- Task: Trim bushes\n  Status: Partially completed. Some bushes appear trimmed, but the large hedge near the fence is still overgrown.\n\n"
+                "Now, analyze the *current 'after' image* and verify the tasks:"
             )
-            print(f"Sending 'After Image {i+1}' for individual LLaVA analysis...")
-            after_response_llava = client.chat.completions.create(
+
+            print("Sending 'After' image for task verification to LLaVA-OneVision (with 'before' and contractor context)...")
+            after_response = client.chat.completions.create(
                 model=LLAVA_MODEL_ID,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": individual_analysis_prompt},
-                            {"type": "image_url", "image_url": {"url": after_img_url}},
-                        ],
-                    }
-                ],
-                max_tokens=700, # Limit individual analysis to save tokens for final synthesis
-                temperature=0.5, # Keep it descriptive, less creative
+                messages=build_messages_with_image(verification_prompt, after_image_data_url),
+                max_tokens=1500,
+                temperature=0.7,
             )
-            individual_after_image_analyses.append(f"--- After Image {i+1} Analysis ---\n" + after_response_llava.choices[0].message.content)
-            print(f"Analysis for 'After Image {i+1}' complete.")
+            task_verification_report_raw = after_response.choices[0].message.content
+            print("Task Verification Complete.")
+
+        # --- Generate Initial Report ---
+        initial_report_sections = []
+        initial_report_sections.append("--- Initial Landscaping Project Report ---\n")
+        initial_report_sections.append(f"**Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S CDT')}**\n")
+        initial_report_sections.append("\n### 1. Before Image Analysis (Current State)\n")
+        initial_report_sections.append(before_analysis)
+        initial_report_sections.append("\n### 2. Requested Tasks (from your list)\n")
+        initial_report_sections.append(f"{requested_tasks_text}\n")
         
-        # --- Phase 3: Synthesize All Analyses into Final Verification (using CHAT_LLM_MODEL_ID) ---
-        synthesis_prompt = (
-            "You are the lead project manager. You have received detailed reports about a landscaping project. "
-            "Your task is to synthesize all provided information into a final, comprehensive verification report. "
-            "Based on the 'before' analysis, the original requested tasks, the contractor's claims, "
-            "and the individual analyses of multiple 'after' images, provide a definitive status for each task. "
-            "If a task is *not* completed, describe precisely what is still missing. "
-            "If a task is completed, briefly describe the evidence supporting it, summarizing across all relevant 'after' image analyses. "
-            "Present your findings in a clear, concise, bulleted checklist format, one bullet point per task.\n\n"
-            f"Here is the 'before' image analysis:\n{before_analysis}\n\n"
-            f"Here are the original requested tasks:\n{requested_tasks_text}\n\n"
-        )
-        if contractor_accomplishments_text:
-            synthesis_prompt += f"Contractor's Claimed Accomplishments:\n{contractor_accomplishments_text}\n\n"
-        
-        synthesis_prompt += (
-            "Individual 'After' Image Analyses from LLaVA:\n" +
-            "\n\n".join(individual_after_image_analyses) +
-            "\n\nNow, generate the final task verification report:"
-        )
-
-        print("Sending all analyses for final synthesis to Llama3...")
-        synthesis_response = client.chat.completions.create(
-            model=CHAT_LLM_MODEL_ID, # Use Llama3 for synthesis
-            messages=[
-                {"role": "system", "content": "You are a highly analytical project manager, excellent at synthesizing information and providing clear, actionable verification reports."},
-                {"role": "user", "content": synthesis_prompt},
-            ],
-            max_tokens=1500, # Allow ample space for the full report
-            temperature=0.2, # Keep synthesis factual and less creative
-        )
-        task_verification_report_raw = synthesis_response.choices[0].message.content
-        print("Final Synthesis Complete.")
-
-        # --- Phase 4: Assemble Final Report for Display and Download ---
-        final_report_sections = []
-        final_report_sections.append("--- Landscaping Project Report ---\n")
-        final_report_sections.append(f"**Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S CDT')}**\n")
-        final_report_sections.append("\n### 1. Before Image Analysis (Current State)\n")
-        final_report_sections.append(before_analysis)
-
-        final_report_sections.append("\n### 2. Individual After Image Analyses (From LLaVA)\n")
-        final_report_sections.append("\n\n".join(individual_after_image_analyses)) # Add individual LLaVA outputs
-
-        final_report_sections.append("\n### 3. Requested Tasks Verification (Synthesized by Llama3)\n") # Label change
-        final_report_sections.append(f"Original Requested Tasks:\n{requested_tasks_text}\n")
-        
-        if contractor_accomplishments_text:
-            final_report_sections.append(f"\nContractor's Claimed Accomplishments:\n{contractor_accomplishments_text}\n")
-
-        final_report_sections.append("\nVerification Report:\n")
-        final_report_sections.append(task_verification_report_raw)
-
-        uncompleted_tasks_for_payment = []
-        lines = task_verification_report_raw.split('\n')
-        for line in lines:
-            line_lower = line.lower()
-            if ("status: not completed" in line_lower or "status: incomplete" in line_lower or "status: partially completed" in line_lower) and "- task:" in line_lower:
-                try:
-                    task_description = line.split("Task:", 1)[1].split("\n")[0].strip()
-                    uncompleted_tasks_for_payment.append(task_description)
-                except IndexError:
-                    uncompleted_tasks_for_payment.append(line.strip())
-
-        if uncompleted_tasks_for_payment:
-            final_report_sections.append("\n### 4. Tasks Left to Be Completed (Before Contractor Payment)\n") # Label change
-            final_report_sections.append("The following tasks require further attention based on the synthesized report:\n")
-            for task in uncompleted_tasks_for_payment:
-                final_report_sections.append(f"- {task}\n")
-            final_report_sections.append("\n*Please refer to the 'Requested Tasks Verification' section above for detailed reasons for non-completion.*")
+        # Only add verification section if an after image was processed
+        if after_image_data_url:
+            initial_report_sections.append("\n### 3. Initial Task Verification (Based on After Image Provided)\n")
+            initial_report_sections.append(task_verification_report_raw)
         else:
-            final_report_sections.append("\n### 4. All Requested Tasks Appear Completed!\n") # Label change
-            final_report_sections.append("Based on the provided images and tasks, all specified work seems to be finished. The contractor is good to go for payment verification.\n")
+            initial_report_sections.append("\n### 3. Initial Task Verification (After Image Not Provided Yet)\n")
+            initial_report_sections.append("Please upload 'After Image(s)' in Block 2 and generate the Final Report in Block 3 for task verification.")
 
-        full_report_text = "".join(final_report_sections)
-        print("Full Report Generated.")
+
+        full_initial_report_text = "".join(initial_report_sections)
+        print("Initial Report Generated.")
 
         return jsonify({
-            "report": full_report_text,
+            "report": full_initial_report_text,
             "before_analysis_text": before_analysis,
-            "original_tasks_text": requested_tasks_text,
-            "contractor_accomplishments_text": contractor_accomplishments_text
+            "original_tasks_text": requested_tasks_text # This is the newline-separated string
         })
 
     except APIError as e:
         print(f"API Error during landscaping analysis: {e}")
-        # Log the full response content for debugging
-        if e.response:
-            print(f"API Error Response Body: {e.response.text}")
         return jsonify({"error": f"API Error: {e.status_code} - {e.response.json() if e.response else str(e)}"}), 500
     except Exception as e:
         print(f"Unexpected error during landscaping analysis: {e}")
         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
-# --- Chat/Question Answering Endpoint (remains mostly the same, now uses LLaVA for visual Qs, Llama3 for text Qs) ---
-@app.route('/ask_question', methods=['POST'])
-def ask_question():
+# --- NEW ENDPOINT for Final Report Generation (Block 3) ---
+@app.route('/generate_final_report', methods=['POST'])
+def generate_final_report():
     try:
         data = request.json
-        user_question = data['question']
-        before_image_data_url = data.get('before_image_data_url')
-        after_image_data_urls = data.get('after_image_data_urls', []) # MODIFIED: now an array
-        before_analysis_text = data.get('before_analysis_text')
-        original_tasks_text = data.get('original_tasks_text')
-        contractor_accomplishments_text = data.get('contractor_accomplishments_text')
-        chat_history = data.get('chat_history', [])
+        before_image_data_url = data['before_image']
+        after_image_data_url = data['after_image'] 
+        all_requested_tasks_text = data['requested_tasks']
+        contractor_accomplishments_text = data.get('contractor_accomplishments', '')
+        contractor_selected_tasks_list = data.get('contractor_selected_tasks', [])
 
-        # Heuristic for routing: if question contains keywords and images are available,
-        # pick one image for LLaVA. Otherwise, use Llama3 (text-only).
-        
-        image_to_send_url_for_llava = None
-        model_to_use = CHAT_LLM_MODEL_ID # Default to Llama3
-        
-        question_lower = user_question.lower()
-        keywords_for_visual_query = ["image", "photo", "picture", "show", "tell me about this", "what's in", "visible", "see"]
-        
-        # Check if question explicitly mentions "before" or "after" image
-        if any(keyword in question_lower for keyword in keywords_for_visual_query):
-            if "before image" in question_lower and before_image_data_url:
-                image_to_send_url_for_llava = before_image_data_url
-                model_to_use = LLAVA_MODEL_ID
-                print("Detected visual query for 'before' image, routing to LLaVA.")
-            elif "after image" in question_lower and after_image_data_urls: # Check if after images are provided
-                # For chat, we'll send the FIRST after image if multiple, for simplicity with LLaVA's 1-image limit.
-                image_to_send_url_for_llava = after_image_data_urls[0]
-                model_to_use = LLAVA_MODEL_ID
-                print("Detected visual query for 'after' image, routing to LLaVA (first after image).")
-            elif after_image_data_urls and not before_image_data_url: # If only after images are available and general visual query
-                 image_to_send_url_for_llava = after_image_data_urls[0]
-                 model_to_use = LLAVA_MODEL_ID
-                 print("Detected general visual query (defaulting to first 'after' image), routing to LLaVA.")
-            elif before_image_data_url and not after_image_data_urls: # If only before image available and general visual query
-                 image_to_send_url_for_llava = before_image_data_url
-                 model_to_use = LLAVA_MODEL_ID
-                 print("Detected general visual query (defaulting to 'before' image), routing to LLaVA.")
+        # --- Validate essential inputs for final report ---
+        if not before_image_data_url or not after_image_data_url:
+            return jsonify({"error": "Both 'before' and 'after' images are required for final report generation."}), 400
+        if not all_requested_tasks_text:
+            return jsonify({"error": "Requested tasks from Block 1 are required for final report generation."}), 400
 
-
-        # Construct messages for the chosen LLM
-        messages_for_llm = []
-
-        # Add initial system/context message (summarizing the project)
-        context_message = (
-            "You are an AI assistant for landscaping project management, providing helpful and informative answers. "
-            "You have access to context about a landscaping project. "
+        # Generate fresh analysis of 'before' image (could cache this from analyze_landscaping if preferred)
+        before_description_prompt = (
+            "Describe the initial state of this landscaping image in detail. Focus on elements like lawn health, bare areas, existing plants, and any visible problems."
         )
-        if before_analysis_text:
-            context_message += f"\n\nProject Context - Before Analysis:\n{before_analysis_text}"
-        if original_tasks_text:
-            context_message += f"\n\nProject Context - Original Requested Tasks:\n{original_tasks_text}"
-        if contractor_accomplishments_text:
-            context_message += f"\n\nProject Context - Contractor's Claimed Accomplishments:\n{contractor_accomplishments_text}"
-        
-        messages_for_llm.append({"role": "system", "content": context_message})
-
-        # Add previous chat history
-        for msg in chat_history:
-            messages_for_llm.append({"role": msg['role'], "content": msg['content']})
-
-        # Add the current user question. Content structure depends on model.
-        if model_to_use == LLAVA_MODEL_ID and image_to_send_url_for_llava:
-            user_content_for_llava = [{"type": "text", "text": user_question}]
-            user_content_for_llava.append({"type": "image_url", "image_url": {"url": image_to_send_url_for_llava}})
-            messages_for_llm.append({"role": "user", "content": user_content_for_llava})
-        else:
-            # For Llama3 (text-only), or if no specific image for LLaVA
-            messages_for_llm.append({"role": "user", "content": user_question})
-
-
-        print(f"Sending chat question to {model_to_use}: {user_question}")
-        chat_response = client.chat.completions.create(
-            model=model_to_use,
-            messages=messages_for_llm,
-            max_tokens=500,
-            temperature=0.7,
+        before_response = client.chat.completions.create(
+            model=LLAVA_MODEL_ID,
+            messages=build_messages_with_image(before_description_prompt, before_image_data_url),
+            max_tokens=1000, temperature=0.5,
         )
-        ai_answer = chat_response.choices[0].message.content
-        print(f"Chat response received from {model_to_use}.")
+        before_analysis_for_final = before_response.choices[0].message.content
 
-        return jsonify({"answer": ai_answer})
+        # Convert contractor's selected tasks into a readable string
+        contractor_selected_tasks_str = "\n".join([f"- {task}" for task in contractor_selected_tasks_list]) if contractor_selected_tasks_list else "None specified by contractor."
+
+        # Prompt for final verification and payment validation
+        final_verification_prompt = (
+            "You are a strict, but reasonable, landscaping project quality assurance auditor. "
+            "Your goal is to provide a final decision on whether a contractor's work meets requirements for payment validation. "
+            "You must consider the *spirit and intent* of the requested tasks, allowing for common and functionally equivalent material substitutions "
+            "unless the original request *explicitly* specified a unique or non-substitutable material. "
+            "If a material is substituted, note it, but only mark the task as 'Not Completed' if the substitution fundamentally alters the task's purpose, functionality, or significantly degrades quality/aesthetics in the context of general landscaping. "
+            "If there's a minor material substitution that achieves the same purpose (e.g., bricks instead of rocks for a border, unless specific rock type was crucial), consider it 'Completed' but note the substitution. "
+            "If the request was for 'rocks' and 'bricks' were used, acknowledge the substitution but if the border is functional and aesthetic, you might consider it 'Completed (with material substitution)' unless explicitly instructed otherwise or there's a clear negative impact."
+            "I will provide:\n"
+            f"1. Description of the 'before' state: {before_analysis_for_final}\n"
+            f"2. All originally requested tasks: {all_requested_tasks_text}\n"
+            f"3. Contractor's self-reported accomplishments: {contractor_accomplishments_text if contractor_accomplishments_text else 'N/A'}\n"
+            f"4. Specific tasks the contractor claims they completed: {contractor_selected_tasks_str}\n\n"
+            "Based on the *current 'after' image* you are analyzing, and all the provided textual context, perform the following steps:\n"
+            "A. **VERIFY ALL REQUESTED TASKS:** Go through 'All originally requested tasks' one by one. For each task, visually inspect the 'after' image. State whether it is 'Completed', 'Partially Completed', or 'Not Completed'. "
+            "If there's a material substitution, indicate 'Completed (with material substitution)' or 'Partially Completed (with material substitution)' and specify the substitution. "
+            "Provide brief visual evidence for your assessment. Use a bulleted list for each task.\n"
+            "B. **COMPARE TO CONTRACTOR'S CLAIM:** Briefly comment on whether the contractor's self-reported accomplishments align with your visual verification, specifically noting any claimed tasks that appear incomplete or any unrequested work that was done.\n"
+            "C. **PAYMENT VALIDATION DECISION:** Based on your thorough verification of ALL originally requested tasks, and considering the flexibility for material substitution as described, provide a clear decision: 'Meets Requirements for Payment', 'Partially Meets Requirements - Further Action Needed', or 'Does Not Meet Requirements - Payment Withheld'. Justify your decision with specific reasons related to uncompleted, unsatisfactory, or fundamentally altered tasks.\n\n"
+            "Present your response clearly, with sections A, B, and C as described."
+        )
+
+        print("Sending 'After' image for final report generation to LLaVA-OneVision...")
+        final_report_response = client.chat.completions.create(
+            model=LLAVA_MODEL_ID,
+            messages=build_messages_with_image(final_verification_prompt, after_image_data_url),
+            max_tokens=2000,
+            temperature=0.5,
+        )
+        final_report_content = final_report_response.choices[0].message.content
+        print("Final Report Generated.")
+
+        return jsonify({"final_report": final_report_content})
 
     except APIError as e:
-        print(f"API Error during chat: {e}")
-        if e.response:
-            print(f"API Error Response Body: {e.response.text}")
+        print(f"API Error during final report generation: {e}")
+        print(f"API Response Details: {e.response.text if e.response else 'No response text'}")
         return jsonify({"error": f"API Error: {e.status_code} - {e.response.json() if e.response else str(e)}"}), 500
     except Exception as e:
-        print(f"Unexpected error during chat: {e}")
-        return jsonify({"error": f"An unexpected error occurred during chat: {str(e)}"}), 500
+        print(f"Unexpected error during final report generation: {e}")
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+
+
+# --- NEW ENDPOINT for Chat Functionality ---
+@app.route('/chat_query', methods=['POST'])
+def chat_query():
+    try:
+        data = request.json
+        user_question = data['user_question']
+        before_image_data_url = data['before_image']
+        after_image_data_url = data['after_image'] 
+        context = data['context']
+
+        # Determine which model to use based on question type and image availability
+        use_llama3 = False
+        current_model_id = LLAVA_MODEL_ID
+        if not before_image_data_url and not after_image_data_url and TEXT_LLM_MODEL_ID:
+            use_llama3 = True
+            current_model_id = TEXT_LLM_MODEL_ID
+            print("Using Llama3 for text-only chat query.")
+        else:
+            print("Using LLaVA-OneVision for chat query (image context available).")
+
+        # Reconstruct messages list for the API call
+        messages_for_api = []
+
+        # Add previous conversation history
+        if context.get('conversation_history'):
+            for msg in context['conversation_history']:
+                role = "user" if msg['role'] == 'user' else "assistant"
+                # Check if content is already in the OpenAI multimodal format (list of dicts)
+                # or if it's a simple text string.
+                if isinstance(msg.get('content'), list): 
+                    messages_for_api.append({"role": role, "content": msg['content']})
+                else: 
+                    messages_for_api.append({"role": role, "content": msg.get('message', '')})
+
+
+        # Construct the context for the current user question
+        context_text = (
+            f"Here is relevant context from the user's landscaping project:\n\n"
+            f"--- Initial Project Analysis (Before Image) ---\n{context.get('before_analysis', 'N/A')}\n\n"
+            f"--- Original Requested Tasks ---\n{context.get('original_tasks', 'N/A')}\n\n"
+            f"--- Contractor's Accomplishments (Statement) ---\n{context.get('contractor_accomplishments', 'N/A')}\n\n"
+            f"--- Full Project Report ---\n{context.get('full_report', 'N/A')}\n\n"
+        )
+        
+        # Build the current user message content
+        current_user_content = [{"type": "text", "text": context_text + "User's Question: " + user_question}]
+
+        # Add images only if using LLaVA and images are present, respecting 1-image-per-request limit
+        if not use_llama3: 
+            if after_image_data_url:
+                current_user_content.append({"type": "image_url", "image_url": {"url": after_image_data_url}})
+                print("Attaching 'After' image to chat query.")
+            elif before_image_data_url: 
+                current_user_content.append({"type": "image_url", "image_url": {"url": before_image_data_url}})
+                print("Attaching 'Before' image to chat query.")
+        
+        messages_for_api.append({"role": "user", "content": current_user_content})
+        
+        print(f"Sending chat query to {current_model_id}. Question: {user_question}")
+        chat_response = client.chat.completions.create(
+            model=current_model_id,
+            messages=messages_for_api,
+            max_tokens=500,
+            temperature=0.5,
+        )
+        ai_response_content = chat_response.choices[0].message.content
+        print(f"AI Chat Response: {ai_response_content}")
+
+        return jsonify({"response": ai_response_content})
+
+    except APIError as e:
+        print(f"API Error during chat query: {e}")
+        print(f"API Response Details: {e.response.text if e.response else 'No response text'}")
+        return jsonify({"error": f"API Error: {e.status_code} - {e.response.json() if e.response else str(e)}"}), 500
+    except Exception as e:
+        print(f"Unexpected error during chat query: {e}")
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+
 
 if __name__ == '__main__':
     if not os.getenv("NRP_API_KEY"):
