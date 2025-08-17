@@ -4,13 +4,16 @@ import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Camera, Scan, Map, FileText, Users, Smartphone } from "lucide-react"
+import { Camera, Scan, Map, FileText, Users, Smartphone, Building2, MessageCircle, CreditCard } from "lucide-react"
 import CameraScanner from "./components/camera-scanner"
 import ModelViewer from "./components/model-viewer"
 import TopDownView from "./components/top-down-view"
 import ReportGenerator from "./components/report-generator"
 import ContractorMatching from "./components/contractor-matching"
+import ContractorDashboard from "./components/contractor-dashboard"
 import PlantIdentification from "./components/plant-identification"
+import ChatInterface from "./components/chat-interface"
+import PaymentInterface from "./components/payment-interface"
 
 export default function ARGardenPlanner() {
   const [activeTab, setActiveTab] = useState("scan")
@@ -36,7 +39,7 @@ export default function ARGardenPlanner() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-9">
             <TabsTrigger value="scan" className="flex items-center gap-2">
               <Camera className="w-4 h-4" />
               Scan
@@ -60,6 +63,18 @@ export default function ARGardenPlanner() {
             <TabsTrigger value="contractors" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               Contractors
+            </TabsTrigger>
+            <TabsTrigger value="contractor-dashboard" className="flex items-center gap-2">
+              <Building2 className="w-4 h-4" />
+              Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="chat" className="flex items-center gap-2">
+              <MessageCircle className="w-4 h-4" />
+              Chat
+            </TabsTrigger>
+            <TabsTrigger value="payments" className="flex items-center gap-2">
+              <CreditCard className="w-4 h-4" />
+              Payments
             </TabsTrigger>
           </TabsList>
 
@@ -133,6 +148,47 @@ export default function ARGardenPlanner() {
               </CardHeader>
               <CardContent>
                 <ContractorMatching scanData={scanData} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="contractor-dashboard" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Contractor Dashboard</CardTitle>
+                <CardDescription>Professional contractor management and project tracking</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ContractorDashboard />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="chat" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Project Chat</CardTitle>
+                <CardDescription>AI-moderated conversation with contractors and bid proposal management</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChatInterface projectId="project_456" />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="payments" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Payment Management</CardTitle>
+                <CardDescription>Stripe-powered payment processing, distribution, and contractor payouts</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PaymentInterface 
+                  projectId="project_456" 
+                  customerId="customer_123" 
+                  contractorId="contractor_456"
+                  initialAmount={2500}
+                />
               </CardContent>
             </Card>
           </TabsContent>

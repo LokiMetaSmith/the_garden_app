@@ -1,0 +1,542 @@
+{
+  "info": {
+    "name": "AR Garden Planner - Contractor System API",
+    "description": "Complete API collection for the AR Garden Planner Contractor System. This collection includes all endpoints for contractor management, project handling, bid management, communication, payments, and analytics.",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{api_key}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.argardenplanner.com/v1",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "your_api_key_here",
+      "type": "string"
+    },
+    {
+      "key": "contractor_id",
+      "value": "contractor_123",
+      "type": "string"
+    },
+    {
+      "key": "project_id",
+      "value": "project_456",
+      "type": "string"
+    },
+    {
+      "key": "bid_id",
+      "value": "bid_789",
+      "type": "string"
+    },
+    {
+      "key": "question_id",
+      "value": "question_001",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Contractor Management",
+      "item": [
+        {
+          "name": "Get All Contractors",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/contractors?page=1&limit=20&location=Downtown, CA&minRating=4.5",
+              "host": ["{{base_url}}"],
+              "path": ["contractors"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "location",
+                  "value": "Downtown, CA"
+                },
+                {
+                  "key": "minRating",
+                  "value": "4.5"
+                }
+              ]
+            },
+            "description": "Retrieve a list of contractors with optional filtering and pagination."
+          }
+        },
+        {
+          "name": "Get Contractor by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/contractors/{{contractor_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["contractors", "{{contractor_id}}"]
+            },
+            "description": "Get detailed information about a specific contractor."
+          }
+        },
+        {
+          "name": "Update Contractor Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/contractors/{{contractor_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["contractors", "{{contractor_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Green Thumb Gardens\",\n  \"phone\": \"+1-555-0123\",\n  \"location\": \"Downtown, CA\",\n  \"description\": \"Updated description\",\n  \"specialties\": [\"garden-design\", \"irrigation\", \"hardscaping\"],\n  \"workingHours\": {\n    \"monday\": \"8:00-17:00\",\n    \"tuesday\": \"8:00-17:00\"\n  }\n}"
+            },
+            "description": "Update contractor profile information."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Project Management",
+      "item": [
+        {
+          "name": "Create New Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects",
+              "host": ["{{base_url}}"],
+              "path": ["projects"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Modern Garden Redesign\",\n  \"description\": \"Complete garden redesign with native plants and modern hardscaping\",\n  \"projectType\": \"garden-design\",\n  \"budget\": {\n    \"min\": 5000,\n    \"max\": 10000,\n    \"currency\": \"USD\"\n  },\n  \"timeline\": \"3 months\",\n  \"location\": \"Downtown, CA\",\n  \"requirements\": [\n    \"Native plants\",\n    \"Irrigation system\",\n    \"Modern hardscaping\",\n    \"LED lighting\"\n  ],\n  \"images\": [\n    \"https://cdn.example.com/projects/garden1.jpg\",\n    \"https://cdn.example.com/projects/garden2.jpg\"\n  ],\n  \"customerPreferences\": [\n    \"Low maintenance\",\n    \"Drought resistant\",\n    \"Year-round color\"\n  ],\n  \"constraints\": [\n    \"Limited water usage\",\n    \"HOA restrictions\"\n  ]\n}"
+            },
+            "description": "Create a new project/job posting."
+          }
+        },
+        {
+          "name": "Get All Projects",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects?status=open&projectType=garden-design&location=Downtown, CA",
+              "host": ["{{base_url}}"],
+              "path": ["projects"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "open"
+                },
+                {
+                  "key": "projectType",
+                  "value": "garden-design"
+                },
+                {
+                  "key": "location",
+                  "value": "Downtown, CA"
+                }
+              ]
+            },
+            "description": "Retrieve projects with optional filtering."
+          }
+        },
+        {
+          "name": "Get Project by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["projects", "{{project_id}}"]
+            },
+            "description": "Get detailed information about a specific project."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Bid Management",
+      "item": [
+        {
+          "name": "Submit Bid",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/bids",
+              "host": ["{{base_url}}"],
+              "path": ["projects", "{{project_id}}", "bids"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contractorId\": \"{{contractor_id}}\",\n  \"amount\": 8500,\n  \"timeline\": \"10-12 weeks\",\n  \"description\": \"Professional garden redesign with premium materials\",\n  \"materials\": [\n    \"Native plants\",\n    \"Drip irrigation system\",\n    \"Stone pavers\",\n    \"LED landscape lighting\"\n  ],\n  \"warranty\": \"2 years on plants, 5 years on hardscaping\",\n  \"paymentTerms\": \"50% upfront, 30% at 50% completion, 20% upon completion\",\n  \"startDate\": \"2024-02-01\",\n  \"completionDate\": \"2024-04-15\"\n}"
+            },
+            "description": "Submit a bid for a project."
+          }
+        },
+        {
+          "name": "Get Bids for Project",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/bids",
+              "host": ["{{base_url}}"],
+              "path": ["projects", "{{project_id}}", "bids"]
+            },
+            "description": "Get all bids submitted for a specific project."
+          }
+        },
+        {
+          "name": "Accept/Reject Bid",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/bids/{{bid_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["projects", "{{project_id}}", "bids", "{{bid_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"accept\",\n  \"reason\": \"Best value and timeline for our needs\"\n}"
+            },
+            "description": "Accept or reject a submitted bid."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Communication & Q&A",
+      "item": [
+        {
+          "name": "Ask Question",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/questions",
+              "host": ["{{base_url}}"],
+              "path": ["projects", "{{project_id}}", "questions"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"What type of irrigation system do you recommend for this climate?\",\n  \"askedBy\": \"customer\",\n  \"priority\": \"medium\",\n  \"isPublic\": true,\n  \"tags\": [\"irrigation\", \"climate\", \"maintenance\"]\n}"
+            },
+            "description": "Ask a question about a project."
+          }
+        },
+        {
+          "name": "Answer Question",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/questions/{{question_id}}/answer",
+              "host": ["{{base_url}}"],
+              "path": ["projects", "{{project_id}}", "questions", "{{question_id}}", "answer"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answer\": \"I recommend a smart drip irrigation system with moisture sensors...\",\n  \"answeredBy\": \"{{contractor_id}}\"\n}"
+            },
+            "description": "Answer a question about a project."
+          }
+        },
+        {
+          "name": "Get Questions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/questions",
+              "host": ["{{base_url}}"],
+              "path": ["projects", "{{project_id}}", "questions"]
+            },
+            "description": "Get all questions and answers for a project."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Engagement & Performance",
+      "item": [
+        {
+          "name": "Get Contractor Engagement Score",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/contractors/{{contractor_id}}/engagement",
+              "host": ["{{base_url}}"],
+              "path": ["contractors", "{{contractor_id}}", "engagement"]
+            },
+            "description": "Get detailed engagement score and metrics for a contractor."
+          }
+        },
+        {
+          "name": "Update Engagement Metrics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/contractors/{{contractor_id}}/engagement/actions",
+              "host": ["{{base_url}}"],
+              "path": ["contractors", "{{contractor_id}}", "engagement", "actions"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"question_response\",\n  \"projectId\": \"{{project_id}}\",\n  \"metadata\": {\n    \"responseTime\": 1.5,\n    \"quality\": \"excellent\"\n  }\n}"
+            },
+            "description": "Update engagement metrics based on contractor actions."
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Payment & Financial",
+      "item": [
+        {
+          "name": "Calculate Payment Distribution",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/payments/calculate",
+              "host": ["{{base_url}}"],
+              "path": ["projects", "{{project_id}}", "payments", "calculate"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"totalAmount\": 8500,\n  \"contractorId\": \"{{contractor_id}}\",\n  \"performanceMetrics\": {\n    \"responseTime\": 2.1,\n    \"communicationQuality\": 92,\n    \"projectCompletion\": 98,\n    \"customerSatisfaction\": 96,\n    \"onTimeDelivery\": true,\n    \"withinBudget\": true,\n    \"qualityRating\": 4.8\n  }\n}"
+            },
+            "description": "Calculate payment distribution including bonuses and holdbacks."
+          }
+        },
+        {
+          "name": "Process Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/payments/process",
+              "host": ["{{base_url}}"],
+              "path": ["projects", "{{project_id}}", "payments", "process"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentMethod\": \"credit_card\",\n  \"cardToken\": \"tok_visa\",\n  \"amount\": 8500,\n  \"currency\": \"USD\"\n}"
+            },
+            "description": "Process a payment for a project."
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Analytics & Reporting",
+      "item": [
+        {
+          "name": "Get Contractor Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/contractors/{{contractor_id}}/analytics?period=month&startDate=2024-01-01&endDate=2024-01-31",
+              "host": ["{{base_url}}"],
+              "path": ["contractors", "{{contractor_id}}", "analytics"],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "month"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-01-31"
+                }
+              ]
+            },
+            "description": "Get comprehensive analytics for a contractor."
+          }
+        },
+        {
+          "name": "Get Platform Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/analytics/platform",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "platform"]
+            },
+            "description": "Get platform-wide analytics and insights."
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Webhooks",
+      "item": [
+        {
+          "name": "Configure Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/webhooks",
+              "host": ["{{base_url}}"],
+              "path": ["webhooks"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://your-app.com/webhooks\",\n  \"events\": [\"bid.submitted\", \"project.updated\"],\n  \"secret\": \"your-webhook-secret\"\n}"
+            },
+            "description": "Configure webhook endpoints for real-time notifications."
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Set common headers for all requests",
+          "pm.request.headers.add({\n    key: 'X-API-Version',\n    value: 'v1'\n});\n\npm.request.headers.add({\n    key: 'X-Client-ID',\n    value: 'postman-collection'\n});"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Common test script for all requests",
+          "pm.test(\"Status code is 200 or 201\", function () {\n    pm.expect(pm.response.code).to.be.oneOf([200, 201]);\n});\n\npm.test(\"Response has success property\", function () {\n    const jsonData = pm.response.json();\n    pm.expect(jsonData).to.have.property('success');\n});\n\npm.test(\"Response time is less than 2000ms\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(2000);\n});"
+        ]
+      }
+    }
+  ]
+}

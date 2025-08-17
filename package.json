@@ -6,7 +6,17 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --watchAll=false",
+    "test:runner": "node scripts/test-runner.js",
+    "test:unit": "jest --testPathPattern=\"__tests__/.*\\.test\\.\" --coverage",
+    "test:components": "jest --testPathPattern=\"components\" --coverage",
+    "test:services": "jest --testPathPattern=\"lib\" --coverage",
+    "test:api": "jest --testPathPattern=\"api\" --coverage",
+    "test:stripe": "jest --testPathPattern=\"stripe\" --coverage"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -39,6 +49,7 @@
     "@radix-ui/react-tooltip": "1.1.6",
     "@react-three/drei": "latest",
     "@react-three/fiber": "latest",
+    "@stripe/stripe-js": "^7.8.0",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -63,18 +74,26 @@
     "react-resizable-panels": "^2.1.7",
     "recharts": "2.15.0",
     "sonner": "^1.7.1",
+    "stripe": "^18.4.0",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "three": "latest",
-    "vaul": "^0.9.6",
+    "vaul": "^1.1.2",
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.7.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "jest": "^30.0.5",
+    "jest-environment-jsdom": "^30.0.5",
     "postcss": "^8.5",
     "tailwindcss": "^3.4.17",
+    "ts-jest": "^29.4.1",
     "typescript": "^5"
   }
 }
