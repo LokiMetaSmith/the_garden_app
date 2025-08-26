@@ -103,3 +103,4 @@ export function getStripeConfig(environment: 'development' | 'staging' | 'produc
       return baseConfig;
   }
 }
+

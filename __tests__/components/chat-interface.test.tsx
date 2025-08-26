@@ -510,3 +510,4 @@ describe('ChatInterface', () => {
     })
   })
 })
+

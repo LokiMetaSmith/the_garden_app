@@ -473,3 +473,4 @@ export const vectorDB = new VectorDatabaseService()
 
 // Export types for use in components
 export type { VectorDocument, Question, AIFeedback, EngagementScore, ProjectContext }
+

@@ -339,3 +339,4 @@ Add refund functionality for disputed or cancelled projects.
 - Added quick start instructions
 - Included troubleshooting section
 - Added security best practices
+

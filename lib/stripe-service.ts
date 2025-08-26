@@ -371,3 +371,4 @@ export class StripeService {
 
 // Export singleton instance
 export const stripeService = new StripeService();
+

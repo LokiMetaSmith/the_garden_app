@@ -473,3 +473,4 @@ console.log('Payment succeeded:', event.data.object);
 - Basic payment intent creation and retrieval
 - Payment capture functionality
 - Initial API structure and documentation
+
